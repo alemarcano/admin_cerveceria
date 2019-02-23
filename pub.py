@@ -18,8 +18,8 @@ def main():
 	client = paho.mqtt.client.Client("Unimet", False)
 	client.qos = 0
 	client.connect(host='localhost')
-	meanKg = 5000
-	stdKg = 500
+	meanKg = 20
+	stdKg = 5
 	cantTorniquetes = 20
 	cantTurnos = 5
 	turno =0
@@ -35,6 +35,7 @@ def main():
 	cursor.execute(cantidadproveedores)
 	conn.commit()
 	peso = cursor.fetchall()
+	estado = 'materiaprima'
 
 	
 	horaBase = datetime.now().replace(minute=0, second=0)
@@ -54,8 +55,11 @@ def main():
 			fe = cursor.fetchall()
 			fk_MP = int(np.random.uniform(fe, fe))
 			
-			fi = int(np.random.uniform(fa, fa))
 			peso_aut = int(np.random.uniform(1, peso))
+
+			
+
+
 
 	
 
@@ -64,8 +68,9 @@ def main():
 				"cantidad": str(cantidadKg),
 				"proveedor": str(fk_proveedor),
 				"mp": str(fk_MP),
-				"fdf": str(fi),
-				"peso": str(peso_aut)
+				"peso": str(peso_aut),
+				"est": str(estado)
+
 			}
 			client.publish('unimet/admin/bd',json.dumps(payload),qos=0)		
 			cantidadKg-=1

@@ -11,7 +11,7 @@ conn = psycopg2.connect(host = 'localhost', user= 'postgres', password ='toby303
 
 def doQuery(a):
     cur = conn.cursor()
-    cur.execute('INSERT INTO lote ("cantidadenviada", "fecha", "fk_proveedor", "fkmp") VALUES (%s, %s, %s, %s);', (a["cantidad"],a["fecha"],a["proveedor"],a["mp"]))
+    cur.execute('INSERT INTO lote ("cantidadenviada", "fecha", "fkproveedor", "fkmp", "estado") VALUES (%s, %s, %s, %s, %s);', (a["cantidad"],a["fecha"],a["proveedor"],a["mp"], a["est"] ))
     conn.commit()
 
     
