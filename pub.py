@@ -18,8 +18,9 @@ def main():
 	client = paho.mqtt.client.Client("Unimet", False)
 	client.qos = 0
 	client.connect(host='localhost')
-	meanKg = 20
-	stdKg = 5
+	meanTonelada = 20
+	precioOroKg=42900
+	stdTonelada = 5
 	cantTorniquetes = 20
 	cantTurnos = 5
 	turno =0
@@ -42,10 +43,10 @@ def main():
 	hoy = date.today()
 	while(cantTurnos>=turno):
 		turno+=1
-		cantidadKg = int(np.random.normal(meanKg, stdKg))
+		cantidadTonelada = int(np.random.normal(meanTonelada, stdTonelada))
 		horaBase = horaBase + timedelta(hours=1)
 
-		while(cantidadKg>0):
+		while(cantidadTonelada>0):
 			hora = horaBase + timedelta(minutes=np.random.uniform(0,60))
 			dat = hoy + timedelta(days=np.random.uniform(0,7))
 			fk_proveedor = int(np.random.uniform(1, fa))
@@ -56,24 +57,21 @@ def main():
 			fk_MP = int(np.random.uniform(fe, fe))
 			
 			peso_aut = int(np.random.uniform(1, peso))
+			precioTotal=cantidadTonelada*precioOroKg
 
-			
-
-
-
-	
 
 			payload = {
 				"fecha": str(dat),
-				"cantidad": str(cantidadKg),
+				"cantidad": str(cantidadTonelada),
 				"proveedor": str(fk_proveedor),
 				"mp": str(fk_MP),
 				"peso": str(peso_aut),
-				"est": str(estado)
+				"est": str(estado),
+				"costototal": str(precioTotal)
 
 			}
 			client.publish('unimet/admin/bd',json.dumps(payload),qos=0)		
-			cantidadKg-=1
+			cantidadTonelada-=1
 			print(payload)
 			time.sleep(2)
 

@@ -15,7 +15,7 @@ def conexion():
 
 
 def menu():
-    print("Bienvencido a la aplicacion de ventas\n")
+    print("Bienvenido a la aplicacion de ventas\n")
 
     print("1. Hacer una nueva venta")
     print("2. Ver todas las ventas realizadas")
@@ -25,7 +25,7 @@ def menu():
 
 
 
-    print("Que tipo de cambio deseas realizar?")
+    print("\nEscribe el numero de la opcion que desees realizar:")
     global cambio 
     cambio = input()
     cambio = int (cambio)
