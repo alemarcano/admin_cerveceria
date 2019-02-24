@@ -20,14 +20,14 @@ def main():
 	client.connect(host='localhost')
 
 	#Peso max y min de cada envio en kgs
-	meanTonelada = 20
+	meanTonelada = 5
 	precioOroKg=42900
-	stdTonelada = 5
+	stdTonelada = 2
 
 	repetir=2500
 
 	#Para conectarnos con la base de datos en postgres
-	conn = psycopg2.connect(host = 'localhost', user= 'postgres', password ='456789123ch', dbname= 'cerveceria1')
+	conn = psycopg2.connect(host = 'localhost', user= 'postgres', password ='toby3030', dbname= 'cerveceria')
 	#conn = psycopg2.connect(host = 'ec2-107-20-167-11.compute-1.amazonaws.com', user= 'inytxpqzmlwhkp', password ='167ff1fd25c60913b54178a1c3427b18b6689f5e822f09f1176788b580c2d1e7', dbname= 'd7dcs98v6bp756')
 	cursor = conn.cursor()
 	conn.autocommit=True
