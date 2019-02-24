@@ -1,8 +1,8 @@
-select * from "inventario_almacenMP"
-ALTER TABLE "venta" ALTER COLUMN total TYPE real
+select * from "proveedorlote"
+ALTER TABLE "lote" ALTER COLUMN precio$ TYPE float
 ALTER TABLE "venta" ADD COLUMN "fecha" date;
 ALTER TABLE "inventarioCerveza" RENAME COLUMN "cantDisponible" TO cantdisponible
-ALTER TABLE "estado_almacenPro" ADD COLUMN fkmp integer
+ALTER TABLE "lote" ADD COLUMN precio$ real
 ALTER TABLE "comisionvendedor" DROP COLUMN id;
 
 select * from "estado_almacenMP"
@@ -35,7 +35,7 @@ BEGIN
 	lot2 := (SELECT COUNT(idalmacenmp) FROM "estado_almacenMP" where "fkmp"=new.fkmp);
 	UPDATE "inventario_almacenMP" SET
 	cantidad = cant + new.cantidadenviada,
-	cantlotes = lot2
+	cantlotes = lot + 1
 	where "fkmp" = new.fkMP;
 
 RETURN NULL;
@@ -80,6 +80,7 @@ $$ language 'plpgsql'
 CREATE TRIGGER ValidarMP BEFORE INSERT ON "inventario_almacenMP"
 FOR EACH ROW EXECUTE PROCEDURE VerificarNegativos()
 
+
 /*Procedimiento almacenado antes de insertar a produccion para asegurar que hay un lote de lupula, uno de cereales y uno de cebada */
 CREATE OR REPLACE FUNCTION ActualizarCantidadProduccion() RETURNS TRIGGER AS
 $$
@@ -88,6 +89,8 @@ materia1 integer:= (SELECT cantlotes FROM "inventario_almacenMP"  where "fkmp" =
 materia2 integer:= (SELECT cantlotes FROM "inventario_almacenMP"  where "fkmp" = '2');
 materia3 integer:= (SELECT cantlotes FROM "inventario_almacenMP"  where "fkmp" = '3');
 cant integer;
+cant2 integer;
+
 lot integer;
 lot2 integer;
 /*Falta poner la condicion que lo pase a produccion luego de una semana NO SE COMO HACERLO */
@@ -96,28 +99,28 @@ BEGIN
 	IF (materia1 = 0 OR materia2 = 0 OR materia3 = 0) THEN
 	RAISE NOTICE 'No hay lotes de materia prima para pasar a produccion';
 	ELSE
-	cant := (SELECT cantidad FROM "inventario_produccion"  where "fkmp" = new.fkmp);
-	lot := (SELECT COUNT(idalmacenpro) FROM "estado_almacenPro" where fkmp=new.fkmp);
-	lot2 := (SELECT COUNT(idalmacenpro) FROM "estado_almacenPro" where "fkmp"=new.fkmp);
+	cant := (SELECT cantidad FROM "inventario_almacenMP"  where "fkmp" = new.fkmp);
+	cant2 := (SELECT cantidad FROM "inventario_produccion"  where "fkmp" = new.fkmp);
+	lot := (SELECT cantlotes FROM "inventario_almacenMP" where fkmp=new.fkmp);
+	lot2 := (SELECT cantlotes FROM "inventario_produccion" where "fkmp"=new.fkmp);
 	
+	INSERT INTO "historico_almacenPRO"(fecha,cantidadalmacenada, fklote, fkmp) values (new.fecha, new.cantidadalmacenada, new.fklote, new.fkmp);
+	INSERT INTO "estado_almacenPro"(fecha,cantidadalmacenada, fklote, fkmp) values (new.fecha, new.cantidadalmacenada, new.fklote, new.fkmp);
+	DELETE FROM "estado_almacenMP" WHERE fklote = new.fklote;
 	
 	UPDATE "inventario_almacenMP" SET
 	cantidad = cant - new.cantidadalmacenada,
-	cantlotes = lot
-	where "fkmp" = new.fkmp;
-	
-	UPDATE "inventario_produccion" SET
-	cantidad = cant + new.cantidadalmacenada,
-	cantlotes = lot2
+	cantlotes = lot - 1
 	where "fkmp" = new.fkmp;
 	
 	UPDATE "lote" SET
 	estado = 'produccion'
 	where "idlote" = new.fklote;
 	
-	INSERT INTO "historico_almacenPRO"(fecha,cantidadalmacenada, fklote, fkmp) values (new.fecha + integer '7', new.cantidadalmacenada, new.fklote, new.fkmp);
-	INSERT INTO "estado_almacenPro"(fecha,cantidadalmacenada, fklote, fkmp) values (new.fecha + integer '7', new.cantidadalmacenada, new.fklote, new.fkmp);
-	DELETE FROM "estado_almacenMP" WHERE fklote = new.fklote;
+	UPDATE "inventario_produccion" SET
+	cantidad = cant2 + new.cantidadalmacenada,
+	cantlotes = lot2 + 1
+	where "fkmp" = new.fkmp;
 	END IF;
 
 RETURN NEW;
@@ -125,15 +128,44 @@ RETURN NEW;
 END;
 $$ language 'plpgsql'
 
-CREATE TRIGGER InventarioProduccion AFTER INSERT ON "estado_almacenMP"
+CREATE TRIGGER InventarioProducciom AFTER INSERT ON "historico_almacenMP"
 for each row execute procedure ActualizarCantidadProduccion()
 
-select * from "vendedor"
 
 /*VISTA PARA TRAERTE TODO LOS LOTES Y SABER EN QUE ESTADO ESTAN*/
 CREATE VIEW EstadoLote AS
 SELECT l.idlote  as " Nro. Lote ", mp.tipo as "Materia Prima", l.estado as "Estado Actual" from lote l
 inner join "materia_prima" mp on mp.id = l.fkmp
+
+/*VISTA PARA VER EL PAGO DEL PROVEEDOR CON LA FECHA Y LA CANTIDAD EN DOLARES*/
+CREATE VIEW PagosProveedor AS
+SELECT l.idlote  as " Nro. Lote ", mp.tipo as "Materia Prima", p.nombre as "Proveedor", 
+CONCAT(p.ciudad, ', ', p.pais) as "Ubicacion", l.cantidadenviada as "Toneladas Compradas", l.precio$ as "Cantidad ($)", l.fecha as "Fecha de Pago"
+from lote l
+inner join "materia_prima" mp on mp.id = l.fkmp
+inner join "proveedor" p on p.id = l.fkproveedor
+
+/*VISTA PARA VER LA CANTIDAD DE DOLARES TOTALES PAGADOS A UN PROVEEDOR*/
+CREATE VIEW SumaPagosProveedor AS
+select  p.nombre as "Proveedor", mp.tipo as "Materia Prima", SUM(l.precio$) as "Total de $ pagados" from lote l
+inner join "proveedor" p on p.id = l.fkproveedor
+inner join "materia_prima" mp on mp.id = l.fkmp
+group by p.nombre, mp.tipo
+
+
+/*VISTA PARA VER LA CANTIDAD DE MATERIA PRIMA ALMACENADA Y SUS LOTES*/
+CREATE VIEW InventarioMP AS
+SELECT m.tipo as "Materia Prima", imp.cantidad as "Toneladas Almacenadas", imp.cantlotes as "Cantidad de Lotes" 
+from "inventario_almacenMP" imp
+inner join "materia_prima" m on m.id = imp.fkmp
+order by "Materia Prima"
+
+/*VISTA PARA VER LA CANTIDAD DE MATERIA PRIMA ALMACENADA EN PRODUCCION Y SUS LOTES*/
+CREATE VIEW InventarioProduccion AS
+SELECT m.tipo as "Materia Prima", ip.cantidad as "Toneladas Almacenadas", ip.cantlotes as "Cantidad de Lotes" 
+from "inventario_produccion" ip
+inner join "materia_prima" m on m.id = ip.fkmp
+order by "Materia Prima"
 
 /*////////////////////////////////////////////// Seccion de VENTAS /////////////////////////////////////////////////// */
 
@@ -205,7 +237,7 @@ $$ language 'plpgsql'
 CREATE TRIGGER GananciaVendedor AFTER INSERT ON venta
 for each row execute procedure ActualizarGanaciaVendedor()
 
-\
+
 SELECT * from comisionvendedor
 SELECT * from vendedor
 ALTER TABLE "comisionVendedor" RENAME TO comisionvendedor;
