@@ -30,6 +30,9 @@ Correr el archivo en otra consola produccion.py
 Correr el archivo en otra consola venta.py
 
 
+En el archivo triggers.sql se encuentra todo el codigo documentado de los triggers y vistas ejecutadas
+
+
 
 
 

@@ -45,8 +45,8 @@ $$ language 'plpgsql'
 
 select * from "inventario_almacenMP"
 select * from "historico_almacenMP"
-select * from lote
-select * from "estado_almacenMP"
+select * from vendedor
+select * from "supermercado"
 
 /*Trigger de pasar de Lote a Historico MP*/
 CREATE TRIGGER InventarioMP AFTER INSERT ON lote
@@ -131,6 +131,106 @@ $$ language 'plpgsql'
 CREATE TRIGGER InventarioProducciom AFTER INSERT ON "historico_almacenMP"
 for each row execute procedure ActualizarCantidadProduccion()
 
+
+
+/*Procedimiento almacenado antes de insertar a produccion para asegurar que hay un lote de lupula, uno de cereales y uno de cebada */
+CREATE OR REPLACE FUNCTION ActualizarCantidadEmbotellado() RETURNS TRIGGER AS
+$$
+DECLARE
+
+cant integer;
+cant2 integer;
+lot integer;
+lot2 integer;
+/*Falta poner la condicion que lo pase a produccion luego de una semana NO SE COMO HACERLO */
+
+BEGIN
+	
+	cant := (SELECT cantidad FROM "inventario_produccion"  where "fkmp" = new.fkmp);
+	cant2 := (SELECT cantidad FROM "inventario_embotellado"  where "fkmp" = new.fkmp);
+	lot := (SELECT cantlotes FROM "inventario_produccion" where fkmp=new.fkmp);
+	lot2 := (SELECT cantlotes FROM "inventario_embotellado" where "fkmp"=new.fkmp);
+	
+	
+	/*le sumo 7 dias, una semana cuando entra al almacen de embotellado*/
+	INSERT INTO "historico_almacenemb"(fecha,cantidadembotellada, fklote, fkmp) values (new.fecha + integer '7', new.cantidadalmacenada, new.fklote, new.fkmp);
+	INSERT INTO "estado_almacenembotellado"(fecha,cantidadembotellada, fklote, fkmp) values (new.fecha + integer '7', new.cantidadalmacenada, new.fklote, new.fkmp);
+	DELETE FROM "estado_almacenPro" WHERE fklote = new.fklote;
+	
+	UPDATE "inventario_produccion" SET
+	cantidad = cant - new.cantidadalmacenada,
+	cantlotes = lot - 1
+	where "fkmp" = new.fkmp;
+	
+	UPDATE "lote" SET
+	estado = 'embotellado'
+	where "idlote" = new.fklote;
+	
+	UPDATE "inventario_embotellado" SET
+	cantidad = cant2 + new.cantidadalmacenada,
+	cantlotes = lot2 + 1
+	where "fkmp" = new.fkmp;
+
+
+RETURN NEW;
+END;
+$$ language 'plpgsql'
+
+CREATE TRIGGER InventarioEmbotellado AFTER INSERT ON "historico_almacenPRO"
+for each row execute procedure ActualizarCantidadEmbotellado()
+
+select * from "inventario_embotellado"
+SELECT estado FROM lote WHERE idlote=423
+DELETE FROM "inventario_embotellado" where id=6
+
+CREATE OR REPLACE FUNCTION ConversionesUnidades() RETURNS TRIGGER AS
+$$
+DECLARE
+
+cant1 integer;
+cant2 integer;
+lot integer;
+lot2 integer;
+total integer;
+/*Falta poner la condicion que lo pase a produccion luego de una semana NO SE COMO HACERLO */
+
+BEGIN
+	/*Una tonelada son 1.000.000 de gramos
+	para hacer una sola cerveza de 350 ml litro se necesita 1g de cebada, 4 g de lupula y 150 g de cereales*/
+	
+	cant1 := (SELECT cantidad FROM "inventario_embotellado"  where "fkmp" = '1');
+	cant2 := (SELECT cantidad FROM "inventario_embotellado"  where "fkmp" = '2');
+	cant3 := (SELECT cantidad FROM "inventario_embotellado"  where "fkmp" = '3');
+
+	total=((cant1*1000)+(cant2*1000)+(cant3*1000))/3
+	
+	
+	/*le sumo 7 dias, una semana cuando entra al almacen de embotellado*/
+	INSERT INTO "historico_almacenemb"(fecha,cantidadembotellada, fklote, fkmp) values (new.fecha + integer '7', new.cantidadalmacenada, new.fklote, new.fkmp);
+	INSERT INTO "estado_almacenembotellado"(fecha,cantidadembotellada, fklote, fkmp) values (new.fecha + integer '7', new.cantidadalmacenada, new.fklote, new.fkmp);
+	DELETE FROM "estado_almacenPro" WHERE fklote = new.fklote;
+	
+	UPDATE "inventario_produccion" SET
+	cantidad = cant - new.cantidadalmacenada,
+	cantlotes = lot - 1
+	where "fkmp" = new.fkmp;
+	
+	UPDATE "lote" SET
+	estado = 'embotellado'
+	where "idlote" = new.fklote;
+	
+	UPDATE "inventario_embotellado" SET
+	cantidad = cant2 + new.cantidadalmacenada,
+	cantlotes = lot2 + 1
+	where "fkmp" = new.fkmp;
+
+
+RETURN NEW;
+END;
+$$ language 'plpgsql'
+
+CREATE TRIGGER InventarioEmbotellado AFTER INSERT ON "historico_almacenPRO"
+for each row execute procedure ActualizarCantidadEmbotellado()
 
 /*VISTA PARA TRAERTE TODO LOS LOTES Y SABER EN QUE ESTADO ESTAN*/
 CREATE VIEW EstadoLote AS
