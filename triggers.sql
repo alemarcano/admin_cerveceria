@@ -364,3 +364,34 @@ for each row execute procedure InsertarVendedorGanancia()
 
 
 INSERT INTO "vendedor"(cedula,nombre, apellido, fecha_nacimiento, telefono) values ('26012664','Alejandro' ,'Marcano', '1997/08/30', '04242481954');
+
+/*procedimiento almacenado para pasar de embotellado a inventario cerveza */
+CREATE TRIGGER NuevaCerveza AFTER INSERT ON inventario_embotellado
+for each row execute procedure cervezalista()
+
+create or replace Function cervezalista() returns trigger as 
+$$
+DECLARE
+cant integer;
+i integer;
+BEGIN
+	cant = new.cantidad;
+	i = 1;
+	WHILE cant > 0 LOOP
+	IF i > 6 THEN
+	i = 1;
+	END IF;
+	UPDATE "inventariocerveza" SET
+	cantdisponible = cantdisponible +1
+	WHERE fkcerveza = i;
+	i= i+1;
+	cant=cant-1;
+	END LOOP;
+RETURN NEW;
+END;
+$$ 
+language 'plpgsql'
+
+/*query de la fecha*/
+
+SELECT  (historico_almacenemb.fecha - public."historico_almacenMP".fecha) AS DateDiff from historico_almacenemb inner join public."historico_almacenMP" ON  historico_almacenemb.fklote = public."historico_almacenMP".fklote;  
