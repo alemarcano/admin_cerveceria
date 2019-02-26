@@ -18,9 +18,9 @@ def menu():
     print("Bienvenido a la aplicacion del gerente de produccion\n")
 
     print("1. Ver lotes que han sido enviados, materia y prima y su proveedor")
-    print("2. Ver el estado de un lote")
-    print("3. Ver los pagos cancelados a un proveedor")
-    print("4. Mandar a embotellar")
+    print("2. Ver el estado de todos lote")
+    print("3. Ver el estado de un lote especifico")
+    print("4. Ver los pagos cancelados a un proveedor")
     print("5. Ver almacen de materia prima")
     print("6. Ver almacen de produccion")
     print("7. Ver almacen de cervezas")
@@ -36,9 +36,9 @@ def menu():
     elif(cambio==2):
         estadolote()
     elif(cambio==3):
-        pagosproveedor()
+        estadounlote()
     elif(cambio==4):
-        proveedorlote()
+        pagosproveedor()
     elif(cambio==5):
         almacenMP()
     elif(cambio==6):
@@ -60,6 +60,18 @@ def proveedorlote():
 
     df = pandas.read_sql(query, conn)
     print (df.to_string(index = False))
+
+def estadounlote():
+    print("Ingrese el numero de lote que quiere buscar")
+    lote = input()
+    lote = int (lote)
+    query = "SELECT estado FROM lote WHERE idlote=%s"
+    cursor.execute(query, (lote,))
+    conn.commit()
+    estado = cursor.fetchone()[0]
+    estado = str(estado)
+    print("El estado del lote ",lote, "es: ", estado)
+
 
 def estadolote():
     #mostrar los querys con vistas
