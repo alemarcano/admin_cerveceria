@@ -24,6 +24,7 @@ def menu():
     print("5. Ver almacen de materia prima")
     print("6. Ver almacen de produccion")
     print("7. Ver almacen de cervezas")
+    print("8. Ver los tiempos de embotellado de los lotes")
 
 
     print("\nEscribe el numero de la opcion que desees realizar:")
@@ -43,6 +44,10 @@ def menu():
         almacenMP()
     elif(cambio==6):
         almacenProduccion()
+    elif(cambio==7):
+        almacenembotellado()
+    elif(cambio==8):
+        tiempos()
     else:
         print("El tipo de cambio que seleccionaste no existe")
     print("\nDeseas hacer otro tipo de cambio regresando al menu? (Si/No)?")
@@ -68,8 +73,7 @@ def estadounlote():
     query = "SELECT estado FROM lote WHERE idlote=%s"
     cursor.execute(query, (lote,))
     conn.commit()
-    estado = cursor.fetchone()[0]
-    estado = str(estado)
+    estado = cursor.fetchall()
     print("El estado del lote ",lote, "es: ", estado)
 
 
@@ -117,8 +121,25 @@ def almacenProduccion():
 
     df = pandas.read_sql(query, conn)
     print (df.to_string(index = False))
+
+
+def almacenembotellado():
+    #mostrar los querys con vistas
+    query = 'SELECT * FROM verinventariocerveza'
+    cursor.execute(query)
+    conn.commit()
+    df = pandas.read_sql(query, conn)
+    print (df.to_string(index = False))
    
 
+def tiempos():
+    #mostrar los querys con vistas
+    query = 'SELECT * FROM tiempos'
+    cursor.execute(query)
+    conn.commit()
+
+    df = pandas.read_sql(query, conn)
+    print (df.to_string(index = False))
 
 def otraVez():
     while (resp!="no"):
